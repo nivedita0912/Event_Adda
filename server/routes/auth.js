@@ -1,4 +1,3 @@
-import express from "express";
 import { Router } from "express";
 import { registerUser , loginUser , verifyOtp} from "../controller/authController.js"
 
@@ -7,6 +6,6 @@ const router = Router();
 
 router.post('/register',registerUser);
 router.post('/login',loginUser);
-router.post('verifyOtp',verifyOtp); 
+router.post('/verifyOtp',verifyOtp); 
 
-module.exports= router;
+export default router;
