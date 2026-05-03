@@ -1,51 +1,144 @@
-import user from "../models/user.js";
-import bcrypt from "bcryptjs"
-import otp from "../models/otp.js";
+import User from "../models/user.js";
+import bcrypt from "bcryptjs";
+import OtpModel from "../models/otp.js";
+import { sendOtpEmail } from "../utils/email.js";
+import jwt from "jsonwebtoken";
+import { configDotenv } from "dotenv";
 
-async function registerUser(req, res) {
+configDotenv();
+
+export async function registerUser(req, res) {
     const { username, password, email, role } = req.body;
     try {
         if (!username || !password || !email) {
             return res.status(400).json({ message: "All fields are required" });
         }
-        const userFromDB = await user.findOne({ email });
+
+        const userFromDB = await User.findOne({ email });
         if (userFromDB) {
-            return res.status(409).json({ message: "user exist already" });
+            return res.status(409).json({ message: "User already exists" });
         }
-        const hasedPAssword = await bcrypt.hash(password, 10);
-        const newUser = await user.create({
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = await User.create({
             username,
             email,
-            password: hasedPAssword,
+            password: hashedPassword,
             isVerified: false,
             role
-        })
-        const otp = Math.floor(1000000 + Math.random() * 9000000).toString();
-        console.log(otp);
-        await sendOtpEmail(email, otp, "acc_verification")
-        await otp.create({
+        });
+
+        const createdOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log(createdOtp);
+
+        await sendOtpEmail(email, createdOtp, "acc_verification");
+
+        await OtpModel.create({
             email,
-            otp,
-            action:"acc_verification"
-        })
-        
+            otp: createdOtp,  // ✅ was "Createotp" which is wrong key
+            action: "acc_verification"
+        });
+
         return res.status(201).json({
-            newUser,
-            otp,
-            message: "user is register successfully .Please check the email to verifiy your account.."
-        })
+            message: "User registered successfully. Please check your email to verify your account."
+        });
+
     } catch (err) {
-        return res.status(500).json({ message: "somthing is worong with register " });
+        console.log(err);
+        return res.status(500).json({ message: "Something went wrong with register" });
     }
-
-
 }
 
-async function loginUser() {
+export async function loginUser(req, res) {
+    try {
+        const { email, password } = req.body;
 
+        if (!email || !password) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const getUser = await User.findOne({ email });
+        if (!getUser) {
+            return res.status(404).json({ message: "No user found" });
+        }
+
+        if (!getUser.isVerified) {
+            return res.status(403).json({ message: "Please verify your account before login" });
+        }
+
+        const isMatch = await bcrypt.compare(password, getUser.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const token = jwt.sign(
+            { role: getUser.role, id: getUser._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        return res.status(200).json({
+            message: "Login successful",
+            user: {
+                id: getUser._id,
+                username: getUser.username,
+                email: getUser.email,
+                role: getUser.role,
+                token
+            }
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Something went wrong with login" });
+    }
 }
 
-async function verifyOtp() {
+export async function verifyOtp(req, res) {
+    try {
+        const { email, otp: bodyOtp } = req.body;
 
+        if (!email || !bodyOtp) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const otpRecord = await OtpModel.findOne({
+            email,
+            otp: bodyOtp,
+            action: "acc_verification"
+        });
+
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Invalid or expired OTP" });
+        }
+
+        const updatedUser = await User.findOneAndUpdate(
+            { email },
+            { isVerified: true },
+            { new: true }
+        );
+
+        await OtpModel.deleteMany({ email, action: "acc_verification" });
+
+        const token = jwt.sign(
+            { role: updatedUser.role, id: updatedUser._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        return res.status(200).json({
+            token,
+            message: "Account verified successfully",
+            user: {
+                id: updatedUser._id,
+                username: updatedUser.username,
+                email: updatedUser.email,
+                role: updatedUser.role
+            }
+        });
+
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Something went wrong with OTP verification" });
+    }
 }
-export { registerUser, loginUser, verifyOtp };
