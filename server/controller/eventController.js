@@ -38,7 +38,7 @@ export async function getEventById(req, res) {
     }
 }
 export async function createEvent(req, res) {
-    const { title, description, date, location, category, totalSeats, ticketPrice, date, imageUrl } = req.body;
+    const { title, description, location, category, totalSeats, ticketPrice, date, imageUrl } = req.body;
     try {
         const event = await events.create({
             title,
@@ -57,7 +57,7 @@ export async function createEvent(req, res) {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 }
-exports.updateEvent = async (req, res) => {
+export async function updateEvent(req, res){
     try {
         const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!event) return res.status(404).json({ message: 'Event not found' });
@@ -67,7 +67,7 @@ exports.updateEvent = async (req, res) => {
     }
 };
 
-exports.deleteEvent = async (req, res) => {
+export async function deleteEvent(req, res){
     try {
         const event = await Event.findByIdAndDelete(req.params.id);
         if (!event) return res.status(404).json({ message: 'Event not found' });
