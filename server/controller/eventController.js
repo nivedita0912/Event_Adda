@@ -38,7 +38,7 @@ export async function getEventById(req, res) {
     }
 }
 export async function createEvent(req, res) {
-    const { title, description, location, category, totalSeats, ticketPrice, date, imageUrl } = req.body;
+    const { title, description, location, category, totalSeats, ticketPrice, date, image } = req.body;
     try {
         const event = await events.create({
             title,
