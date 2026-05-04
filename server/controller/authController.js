@@ -3,8 +3,9 @@ import bcrypt from "bcryptjs";
 import OtpModel from "../models/otp.js";
 import { sendOtpEmail } from "../utils/email.js";
 import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 import { configDotenv } from "dotenv";
-
+import {GenerateToken, DecodedToken } from "../utils/tokens.js"
 configDotenv();
 
 export async function registerUser(req, res) {
@@ -50,6 +51,7 @@ export async function registerUser(req, res) {
 }
 
 export async function loginUser(req, res) {
+    
     try {
         const { email, password } = req.body;
 
@@ -70,12 +72,15 @@ export async function loginUser(req, res) {
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
+const token  = GenerateToken( getUser.role,getUser._id);
 
-        const token = jwt.sign(
-            { role: getUser.role, id: getUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
+res.cookie("token", token, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    const decode = DecodedToken(token);
 
         return res.status(200).json({
             message: "Login successful",
@@ -84,7 +89,8 @@ export async function loginUser(req, res) {
                 username: getUser.username,
                 email: getUser.email,
                 role: getUser.role,
-                token
+                token,
+                decode
             }
         });
 
