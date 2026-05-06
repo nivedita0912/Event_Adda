@@ -1,22 +1,15 @@
-
 import mongoose from "mongoose";
-import User from "./user.js";
 
 const eventsSchema = new mongoose.Schema({
     title: {
-        type: Number,
+        type: String,  // ✅ String not Number
         required: true
     },
     description: {
         type: String,
         required: true
     },
-    action: {
-        type: String,
-        enum: ["acc_verification", "event_booking"],
-        required: true
-    },
-    Date: {
+    date: {               // ✅ lowercase
         type: Date,
         required: true
     },
@@ -40,14 +33,15 @@ const eventsSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    imageUrl: {
+    image: {             // ✅ image not imageUrl
         type: String,
-        required: true
+        default: ''
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: User,
-        require: true
+        ref: 'User',     // ✅ string not imported model
+        required: true
     }
-}, { timestamps: true })
+}, { timestamps: true });
+
 export default mongoose.model("Events", eventsSchema);

@@ -4,22 +4,27 @@ import { configDotenv } from "dotenv";
 import authRoutes from './routes/auth.js'
 import bookingRoutes from "./routes/booking.js";
 import eventsRoutes from "./routes/events.js";
-import connectToDB from "./utils/db.js"
+import connectToDB from "./utils/db.js";
+import cookieParser from "cookie-parser";
 const app = express();
 
 configDotenv();
 
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 connectToDB();
 //Routes
 app.get("/", (req, res) => {
-    res.send("Server is running"); 
+    res.send("Server is running");
 });
-app.use("/api/auth",authRoutes);
-app.use("/api/events",eventsRoutes);
-app.use("/api/bookings",bookingRoutes)
-
+app.use("/api/auth", authRoutes);
+app.use("/api/events", eventsRoutes);
+app.use("/api/bookings", bookingRoutes)
+app.post("/api/auth/test", (req, res) => res.json({ message: "works" }));
 const Port = process.env.PORT || 5000;
 
 

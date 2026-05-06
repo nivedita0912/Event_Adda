@@ -4,12 +4,17 @@ import user from "./user.js";
 const bookingSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: user,
+        ref: 'User',
         required: true
+    },
+    quantity: {
+        type: Number,
+        default: 1,
+        min: 1
     },
     eventId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Event',
+        ref: 'Events',
         required: true
     },
     status: {
@@ -33,4 +38,4 @@ const bookingSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
- export default mongoose.model('Booking', bookingSchema);
+export default mongoose.model('Booking', bookingSchema);
