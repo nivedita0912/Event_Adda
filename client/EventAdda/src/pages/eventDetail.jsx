@@ -15,6 +15,7 @@ const EventDetail = () => {
     const [showOTP, setShowOTP] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    const [quantity, setQuantity] = useState(1); // ✅ added
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -45,11 +46,10 @@ const EventDetail = () => {
                 setShowOTP(true);
                 setSuccessMsg('OTP sent to your email. Please verify to confirm booking.');
             } else {
-                await api.post('/bookings', { eventId: event._id, otp });
-                setSuccessMsg('Booking requested! Awaiting admin confirmation.');
+                await api.post('/bookings', { eventId: event._id, otp, quantity }); // ✅ send quantity
+                setSuccessMsg(`Booking requested for ${quantity} ticket(s)! Awaiting admin confirmation.`);
                 setShowOTP(false);
-                // Update local seats count dynamically after booking
-                setEvent({ ...event, availableSeats: event.availableSeats - 1 });
+                setEvent({ ...event, availableSeats: event.availableSeats - quantity }); // ✅ deduct quantity
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Booking failed');
@@ -93,7 +93,12 @@ const EventDetail = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-gray-400 uppercase">Ticket Price</p>
-                                    <p className="font-bold text-gray-800 text-lg">{event.ticketPrice === 0 ? <span className="text-green-500">Free</span> : `₹${event.ticketPrice}`}</p>
+                                    <p className="font-bold text-gray-800 text-lg">
+                                        {event.ticketPrice === 0 ? <span className="text-green-500">Free</span> : `₹${event.ticketPrice}`}
+                                        {quantity > 1 && event.ticketPrice > 0 && (
+                                            <span className="text-gray-500 text-sm ml-2">× {quantity} = ₹{event.ticketPrice * quantity}</span>
+                                        )}
+                                    </p>
                                 </div>
                             </div>
 
@@ -108,6 +113,29 @@ const EventDetail = () => {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* ✅ Quantity Selector */}
+                            {!isSoldOut && !successMsg && (
+                                <div className="flex items-center gap-4 text-gray-600">
+                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
+                                        🎟
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-400 uppercase mb-1">Tickets</p>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                                className="w-8 h-8 rounded-full bg-gray-200 font-bold hover:bg-gray-300 transition text-gray-800"
+                                            >-</button>
+                                            <span className="font-bold text-gray-800 w-6 text-center">{quantity}</span>
+                                            <button
+                                                onClick={() => setQuantity(q => Math.min(event.availableSeats, q + 1))}
+                                                className="w-8 h-8 rounded-full bg-gray-200 font-bold hover:bg-gray-300 transition text-gray-800"
+                                            >+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex items-center gap-4 text-gray-600">
                                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
@@ -153,7 +181,7 @@ const EventDetail = () => {
                                 : 'bg-gray-900 hover:bg-black text-white hover:shadow-xl hover:-translate-y-1'
                                 }`}
                         >
-                            {bookingLoading ? 'Processing...' : (showOTP ? 'Verify OTP & Confirm' : (successMsg && !showOTP ? 'Request Sent' : (isSoldOut ? 'Sold Out' : 'Confirm Registration')))}
+                            {bookingLoading ? 'Processing...' : (showOTP ? 'Verify OTP & Confirm' : (successMsg && !showOTP ? 'Request Sent' : (isSoldOut ? 'Sold Out' : `Book ${quantity} Ticket${quantity > 1 ? 's' : ''}`)))}
                         </button>
                         {error && <p className="text-red-500 mt-4 text-center font-medium bg-red-50 p-2 rounded">{error}</p>}
                         {successMsg && <p className="text-green-600 mt-4 text-center font-medium bg-green-50 p-2 rounded">{successMsg}</p>}

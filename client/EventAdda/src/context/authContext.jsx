@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     // 🔢 Verify OTP
     const verifyOTP = async (email, otp) => {
         try {
-            const { data } = await api.post('/auth/verify-otp', {
+            const { data } = await api.post('/auth/verifyOtp', {
                 email,
                 otp,
             });
