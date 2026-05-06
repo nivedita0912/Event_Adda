@@ -25,7 +25,7 @@ export async function getAllEvents(req, res) {
     }
 }
 export async function getEventById(req, res) {
-    const { id } = req.body;
+    const { id } = req.params;
     try {
         const eventFromDB = await Events.findById(id);
         if (!eventFromDB) {
@@ -49,7 +49,7 @@ export async function createEvent(req, res) {
             totalSeats,
             availableSeats: totalSeats,
             ticketPrice: ticketPrice || 0,
-            image: image || '',
+            image: imageUrl || '',
             createdBy: req.user.id
         });
         res.status(201).json(event);

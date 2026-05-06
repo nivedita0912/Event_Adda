@@ -9,6 +9,8 @@ export async function protect(req, res, next) {
             return res.status(401).json({ message: "Unauthorized - No token" });
         }
 
+        const decoded = jwt.verify(token, process.env.JWT_SECRET); // ✅ missing this line
+
         const user = await User.findById(decoded.id).select("-password");
 
         if (!user) {
@@ -16,12 +18,10 @@ export async function protect(req, res, next) {
         }
 
         req.user = user;
-
         next();
 
     } catch (err) {
         console.log(err);
-
         return res.status(401).json({
             message: "Unauthorized - Invalid or expired token"
         });

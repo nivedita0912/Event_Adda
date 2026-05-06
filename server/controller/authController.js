@@ -65,13 +65,23 @@ export async function loginUser(req, res) {
         }
 
         if (!getUser.isVerified) {
-            return res.status(403).json({ message: "Please verify your account before login" });
-        }
+    const createdOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(createdOtp);
+    
+    await OtpModel.deleteMany({ email: getUser.email, action: "acc_verification" });
+    await OtpModel.create({
+        email: getUser.email,
+        otp: createdOtp,
+        action: "acc_verification"
+    });
+    await sendOtpEmail(getUser.email, createdOtp, "acc_verification");
 
-        const isMatch = await bcrypt.compare(password, getUser.password);
-        if (!isMatch) {
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
+    return res.status(403).json({ 
+        message: "Account not verified. OTP sent to your email.",
+        needsVerification: true,
+        email: getUser.email
+    });
+}
 const token  = GenerateToken( getUser.role,getUser._id);
 
 res.cookie("token", token, {
@@ -99,6 +109,35 @@ res.cookie("token", token, {
         return res.status(500).json({ message: "Something went wrong with login" });
     }
 }
+export async function getMe(req, res) {
+    try {
+        const token = req.cookies?.token;
+        if (!token) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+
+        const decoded = DecodedToken(token);
+        if (!decoded) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+
+        const user = await User.findById(decoded.id).select("-password");
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role
+        });
+
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Something went wrong" });
+    }
+}
 
 export async function verifyOtp(req, res) {
     try {
@@ -110,7 +149,7 @@ export async function verifyOtp(req, res) {
 
         const otpRecord = await OtpModel.findOne({
             email,
-            otp: bodyOtp,
+            otp: Number(bodyOtp),
             action: "acc_verification"
         });
 
